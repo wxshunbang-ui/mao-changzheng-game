@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>星火长征 · 迷你小游戏</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #3b1010 0%, #170808 70%, #0d0505 100%);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: #fff6e5;
+      padding: 16px;
+    }
+    .cabinet {
+      width: 100%;
+      max-width: 780px;
+      background: #200b0b;
+      border: 2px solid #c9963b;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 24px rgba(212, 46, 36, 0.25);
+      overflow: hidden;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: linear-gradient(90deg, #5a1212, #8c1d18, #5a1212);
+      border-bottom: 1px solid rgba(255, 215, 130, 0.35);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 1px;
+      color: #ffd875;
+    }
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+    }
+    .pill {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 216, 117, 0.35);
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #ffe8b3;
+    }
+    .icon-btn {
+      cursor: pointer;
+      background: rgba(255, 216, 117, 0.14);
+      border: 1px solid rgba(255, 216, 117, 0.55);
+      color: #ffd875;
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 13px;
+      transition: 0.18s;
+    }
+    .icon-btn:hover { background: rgba(255, 216, 117, 0.28); }
+
+    .stage-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #1a0909;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: manipulation;
+    }
+
+    /* Overlay Screens */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(20, 6, 6, 0.25) 0%, rgba(20, 6, 6, 0.6) 60%, rgba(16, 4, 4, 0.92) 100%);
+      transition: opacity 0.25s ease;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .cover-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      filter: saturate(1.06) contrast(1.03);
+    }
+    .cover-scrim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, rgba(35, 6, 6, 0.82) 0%, rgba(35, 6, 6, 0.35) 55%, rgba(16, 4, 4, 0.72) 100%);
+      z-index: 1;
+    }
+    .cover-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .title-block { max-width: 68%; }
+    .badge {
+      display: inline-block;
+      background: #b91c1c;
+      border: 1px solid #ffd875;
+      color: #ffe8a3;
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .game-title {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #ffd875;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), 0 0 18px rgba(220, 38, 38, 0.55);
+      line-height: 1.15;
+    }
+    .subtitle {
+      margin-top: 6px;
+      font-size: clamp(12px, 2vw, 15px);
+      color: #fff2d6;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      opacity: 0.95;
+    }
+    .cover-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .cta-btn {
+      cursor: pointer;
+      border: 2px solid #ffe49c;
+      background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+      color: #fff7d6;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      padding: 11px 28px;
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(185, 28, 28, 0.55);
+      transition: transform 0.14s, filter 0.14s;
+    }
+    .cta-btn:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.08); }
+    .cta-btn:active { transform: translateY(0) scale(0.98); }
+    .hint {
+      font-size: 12px;
+      color: #f6ddb1;
+      background: rgba(0, 0, 0, 0.48);
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 216, 117, 0.25);
+    }
+
+    /* End Screen */
+    .end-card {
+      position: relative;
+      z-index: 2;
+      margin: auto;
+      text-align: center;
+      background: rgba(32, 9, 9, 0.9);
+      border: 2px solid #d4a145;
+      border-radius: 16px;
+      padding: 22px 28px;
+      max-width: 440px;
+      width: 92%;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    }
+    .end-title { font-size: 26px; font-weight: 800; color: #ffd875; margin-bottom: 6px; }
+    .end-poem { font-size: 14px; color: #ffe7b8; margin-bottom: 14px; line-height: 1.6; }
+    .end-stats {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      font-size: 14px;
+    }
+    .end-btns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .ghost-btn {
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 216, 117, 0.5);
+      color: #ffe8b3;
+      font-size: 14px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      transition: 0.15s;
+    }
+    .ghost-btn:hover { background: rgba(255, 216, 117, 0.18); }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #d6b68b;
+      background: #180707;
+      border-top: 1px solid rgba(255, 216, 117, 0.18);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="cabinet">
+    <div class="topbar">
+      <div class="brand">★ 星火长征</div>
+      <div class="hud">
+        <span class="pill" id="stageLabel">阶段：瑞金启程</span>
+        <span class="pill" id="scoreLabel">星火：0</span>
+        <span class="pill" id="livesLabel">红心：♥♥♥</span>
+        <button class="icon-btn" id="audioToggle" title="切换音乐与音效 (M)">🔊 音乐开</button>
+      </div>
+    </div>
+
+    <div class="stage-wrap">
+      <canvas id="game" width="760" height="428"></canvas>
+
+      <!-- Cover Overlay -->
+      <div class="overlay" id="coverScreen">
+        <img class="cover-bg" src="./cover.jpg" alt="星火长征 游戏封面" onerror="this.style.display='none'" />
+        <div class="cover-scrim"></div>
+        <div class="cover-content">
+          <div class="title-block">
+            <span class="badge">★ 七律·长征 迷你互动小游戏</span>
+            <div class="game-title">星火长征</div>
+            <div class="subtitle">红军不怕远征难，万水千山只等闲</div>
+          </div>
+          <div class="cover-actions">
+            <button class="cta-btn" id="startBtn">▶ 开始远征</button>
+            <div class="hint">操作：空格 / ↑ / 点击屏幕 跳跃（支持二段跳）· 约40秒通关</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- End Overlay -->
+      <div class="overlay hidden" id="endScreen">
+        <div class="end-card">
+          <div class="end-title" id="endTitle">胜利会师！</div>
+          <div class="end-poem" id="endPoem">更喜岷山千里雪，三军过后尽开颜。</div>
+          <div class="end-stats">
+            <span class="pill" id="finalScore">星火：0</span>
+            <span class="pill" id="bestScore">最高：0</span>
+          </div>
+          <div class="end-btns">
+            <button class="cta-btn" id="restartBtn">再来一局</button>
+            <button class="ghost-btn" id="coverBtn">返回封面</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>跨越四段征程：瑞金 → 泸定桥 → 岷山雪峰 → 胜利会师</span>
+      <span>按 <strong>Space</strong> 跳跃 · 按 <strong>M</strong> 静音</span>
+    </div>
+  </div>
+
+  <script>
+    // ============== 1. Web Audio 音乐与音效引擎 ==============
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.master = null;
+        this.muted = false;
+        this.bgmTimer = null;
+        this.step = 0;
+        // 五声音阶进行曲旋律（C大调宫商角徵羽，激昂明快）
+        this.melody = [
+          523.25, 659.25, 783.99, 783.99, 880.00, 783.99, 659.25, 587.33,
+          523.25, 587.33, 659.25, 783.99, 659.25, 0,      587.33, 0,
+          783.99, 880.00, 1046.5, 880.00, 783.99, 659.25, 587.33, 523.25,
+          587.33, 659.25, 783.99, 587.33, 523.25, 0,      523.25, 0
+        ];
+        this.bass = [
+          130.81, 0, 196.00, 0, 174.61, 0, 196.00, 0,
+          130.81, 0, 164.81, 0, 196.00, 0, 146.83, 0,
+          196.00, 0, 261.63, 0, 196.00, 0, 164.81, 0,
+          146.83, 0, 196.00, 0, 130.81, 0, 196.00, 0
+        ];
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AC();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = this.muted ? 0 : 0.36;
+          this.master.connect(this.ctx.destination);
+        }
+        if (this.ctx.state === "suspended") this.ctx.resume();
+      }
+
+      setMuted(m) {
+        this.muted = m;
+        if (this.master && this.ctx) {
+          this.master.gain.setTargetAtTime(m ? 0 : 0.36, this.ctx.currentTime, 0.03);
+        }
+      }
+
+      tone(freq, dur, type = "triangle", vol = 0.22, delay = 0, slideTo = null) {
+        if (!this.ctx || !freq) return;
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        osc.connect(gain);
+        gain.connect(this.master);
+        osc.start(now);
+        osc.stop(now + dur + 0.02);
+      }
+
+      snare(delay = 0, vol = 0.09) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime + delay;
+        const bufferSize = this.ctx.sampleRate * 0.06;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        const src = this.ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 1100;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.master);
+        src.start(now);
+      }
+
+      startBGM() {
+        this.init();
+        if (this.bgmTimer) return;
+        this.step = 0;
+        this.bgmTimer = setInterval(() => {
+          if (!this.ctx || this.ctx.state !== "running") return;
+          const idx = this.step % this.melody.length;
+          const m = this.melody[idx];
+          const b = this.bass[idx];
+          if (m) {
+            this.tone(m, 0.19, "triangle", 0.2);
+            this.tone(m * 2, 0.14, "sine", 0.05); // 笛音泛音
+          }
+          if (b) this.tone(b, 0.22, "sine", 0.22);
+          // 进行曲鼓点
+          if (idx % 4 === 0) this.tone(95, 0.09, "sine", 0.28, 0, 42);
+          if (idx % 4 === 2) this.snare(0, 0.08);
+          this.step++;
+        }, 215);
+      }
+
+      stopBGM() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+
+      playJump(doubleJump = false) {
+        this.init();
+        if (doubleJump) {
+          this.tone(420, 0.14, "triangle", 0.26, 0, 780);
+          this.tone(640, 0.12, "sine", 0.16, 0.03, 980);
+        } else {
+          this.tone(280, 0.14, "triangle", 0.26, 0, 560);
+        }
+      }
+
+      playStar() {
+        this.init();
+        this.tone(784, 0.1, "sine", 0.24, 0);
+        this.tone(1046.5, 0.16, "triangle", 0.22, 0.06);
+      }
+
+      playStage() {
+        this.init();
+        [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => {
+          this.tone(n, 0.22, "triangle", 0.22, i * 0.08);
+        });
+      }
+
+      playHit() {
+        this.init();
+        this.tone(160, 0.22, "sawtooth", 0.24, 0, 55);
+        this.snare(0, 0.18);
+      }
+
+      playWin() {
+        this.init();
+        const notes = [523.25, 659.25, 783.99, 1046.5, 880, 1046.5];
+        notes.forEach((n, i) => {
+          this.tone(n, i === notes.length - 1 ? 0.55 : 0.16, "triangle", 0.28, i * 0.11);
+        });
+      }
+    }
+
+    // ============== 2. 游戏核心逻辑 ==============
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    const GROUND_Y = 342;
+    const audio = new AudioEngine();
+
+    const STAGES = [
+      {
+        name: "瑞金启程",
+        poem: "红军不怕远征难，万水千山只等闲",
+        skyTop: "#6d1414", skyBot: "#f08c4b",
+        hillFar: "#4d1a1a", hillNear: "#2c4024", ground: "#5c3b24", grass: "#497335",
+        snow: false, speed: 4.5
+      },
+      {
+        name: "飞夺泸定桥",
+        poem: "金沙水拍云崖暖，大渡桥横铁索寒",
+        skyTop: "#24193d", skyBot: "#c4533a",
+        hillFar: "#2a2342", hillNear: "#1f2e3b", ground: "#3d2f2e", grass: "#8a5a3b",
+        snow: false, speed: 5.2
+      },
+      {
+        name: "翻越岷山雪",
+        poem: "更喜岷山千里雪，三军过后尽开颜",
+        skyTop: "#1b3963", skyBot: "#a5cce8",
+        hillFar: "#5d7fa3", hillNear: "#d9e9f5", ground: "#8da9c4", grass: "#f2f8ff",
+        snow: true, speed: 5.7
+      },
+      {
+        name: "胜利会师",
+        poem: "星星之火，可以燎原！",
+        skyTop: "#8f1919", skyBot: "#ffca63",
+        hillFar: "#7a2a1d", hillNear: "#a64526", ground: "#8f5b2c", grass: "#c98636",
+        snow: false, speed: 6.0
+      }
+    ];
+
+    const TOTAL_DIST = 2600; // 约 38~42 秒通关
+    let best = Number(localStorage.getItem("mao_changzheng_best") || 0);
+
+    const state = {
+      mode: "cover", // cover | playing | won | over
+      dist: 0,
+      score: 0,
+      lives: 3,
+      stageIdx: 0,
+      tick: 0,
+      poemToast: "",
+      poemTimer: 0,
+      shake: 0,
+      obstacles: [],
+      stars: [],
+      particles: [],
+      snowflakes: Array.from({ length: 42 }, () => ({
+        x: Math.random() * W, y: Math.random() * H, r: 1.5 + Math.random() * 2.5, s: 1 + Math.random() * 1.8
+      })),
+      nextObs: 90,
+      nextStar: 45,
+      player: { x: 118, y: GROUND_Y, vy: 0, jumps: 0, invuln: 0 }
+    };
+
+    const stageLabel = document.getElementById("stageLabel");
+    const scoreLabel = document.getElementById("scoreLabel");
+    const livesLabel = document.getElementById("livesLabel");
+    const coverScreen = document.getElementById("coverScreen");
+    const endScreen = document.getElementById("endScreen");
+    const endTitle = document.getElementById("endTitle");
+    const endPoem = document.getElementById("endPoem");
+    const finalScore = document.getElementById("finalScore");
+    const bestScore = document.getElementById("bestScore");
+    const audioToggle = document.getElementById("audioToggle");
+
+    function updateHUD() {
+      stageLabel.textContent = `阶段：${STAGES[state.stageIdx].name}`;
+      scoreLabel.textContent = `星火：${state.score}`;
+      livesLabel.textContent = `红心：${"♥".repeat(Math.max(0, state.lives))}${"♡".repeat(Math.max(0, 3 - state.lives))}`;
+    }
+
+    function spawnParticles(x, y, color, count = 10) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 1.5 + Math.random() * 3.8;
+        state.particles.push({
+          x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.2,
+          life: 24 + Math.random() * 14, maxLife: 38, color, r: 2 + Math.random() * 2.5
+        });
+      }
+    }
+
+    function resetGame() {
+      state.mode = "playing";
+      state.dist = 0;
+      state.score = 0;
+      state.lives = 3;
+      state.stageIdx = 0;
+      state.tick = 0;
+      state.obstacles = [];
+      state.stars = [];
+      state.particles = [];
+      state.nextObs = 85;
+      state.nextStar = 36;
+      state.shake = 0;
+      state.player = { x: 118, y: GROUND_Y, vy: 0, jumps: 0, invuln: 0 };
+      showPoem(STAGES[0].poem);
+      coverScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      updateHUD();
+      audio.startBGM();
+    }
+
+    function showPoem(text) {
+      state.poemToast = text;
+      state.poemTimer = 170;
+    }
+
+    function jump() {
+      if (state.mode !== "playing") return;
+      const p = state.player;
+      if (p.jumps < 2) {
+        const isDouble = p.jumps === 1;
+        p.vy = isDouble ? -11.6 : -13.0;
+        p.jumps++;
+        audio.playJump(isDouble);
+        spawnParticles(p.x, p.y, isDouble ? "#ffd875" : "#fff2cc", 8);
+      }
+    }
+
+    function finishGame(won) {
+      state.mode = won ? "won" : "over";
+      audio.stopBGM();
+      if (won) {
+        state.score += 100;
+        audio.playWin();
+      } else {
+        audio.playHit();
+      }
+      if (state.score > best) {
+        best = state.score;
+        localStorage.setItem("mao_changzheng_best", String(best));
+      }
+      updateHUD();
+      endTitle.textContent = won ? "★ 胜利会师！" : "征途受阻，再接再厉";
+      endPoem.textContent = won
+        ? "更喜岷山千里雪，三军过后尽开颜。"
+        : "雄关漫道真如铁，而今迈步从头越。";
+      finalScore.textContent = `星火：${state.score}`;
+      bestScore.textContent = `最高：${best}`;
+      endScreen.classList.remove("hidden");
+    }
+
+    // ============== 3. 更新与绘制 ==============
+    function update() {
+      if (state.mode !== "playing") return;
+      state.tick++;
+
+      const st = STAGES[state.stageIdx];
+      state.dist += st.speed * 0.24;
+
+      // 阶段切换
+      const newStage = Math.min(STAGES.length - 1, Math.floor((state.dist / TOTAL_DIST) * STAGES.length));
+      if (newStage !== state.stageIdx) {
+        state.stageIdx = newStage;
+        showPoem(STAGES[newStage].poem);
+        audio.playStage();
+        spawnParticles(state.player.x, state.player.y - 30, "#ffd875", 16);
+        updateHUD();
+      }
+
+      if (state.dist >= TOTAL_DIST) {
+        finishGame(true);
+        return;
+      }
+
+      // 玩家物理
+      const p = state.player;
+      p.vy += 0.64;
+      p.y += p.vy;
+      if (p.y >= GROUND_Y) {
+        p.y = GROUND_Y;
+        p.vy = 0;
+        p.jumps = 0;
+      }
+      if (p.invuln > 0) p.invuln--;
+      if (state.poemTimer > 0) state.poemTimer--;
+      if (state.shake > 0) state.shake *= 0.85;
+
+      // 生成障碍
+      state.nextObs--;
+      if (state.nextObs <= 0) {
+        const tall = Math.random() > 0.55;
+        state.obstacles.push({
+          x: W + 30,
+          w: tall ? 28 : 34,
+          h: tall ? 48 : 34,
+          kind: state.stageIdx
+        });
+        state.nextObs = Math.floor(68 + Math.random() * 54 - state.stageIdx * 5);
+      }
+
+      // 生成星火道具
+      state.nextStar--;
+      if (state.nextStar <= 0) {
+        const arc = Math.random() > 0.45;
+        state.stars.push({
+          x: W + 24,
+          y: arc ? GROUND_Y - 108 - Math.random() * 32 : GROUND_Y - 46,
+          r: 12,
+          phase: Math.random() * Math.PI * 2
+        });
+        state.nextStar = Math.floor(38 + Math.random() * 34);
+      }
+
+      // 更新障碍物并检测碰撞
+      for (let i = state.obstacles.length - 1; i >= 0; i--) {
+        const o = state.obstacles[i];
+        o.x -= st.speed;
+        if (o.x + o.w < -20) {
+          state.obstacles.splice(i, 1);
+          continue;
+        }
+        // 友好碰撞盒
+        if (p.invuln === 0) {
+          const hitX = p.x + 12 > o.x + 4 && p.x - 12 < o.x + o.w - 4;
+          const hitY = p.y - 4 > GROUND_Y - o.h + 6;
+          if (hitX && hitY) {
+            state.lives--;
+            p.invuln = 75;
+            state.shake = 10;
+            audio.playHit();
+            spawnParticles(p.x, p.y - 22, "#ef4444", 14);
+            updateHUD();
+            if (state.lives <= 0) {
+              finishGame(false);
+              return;
+            }
+          }
+        }
+      }
+
+      // 更新星火道具
+      for (let i = state.stars.length - 1; i >= 0; i--) {
+        const s = state.stars[i];
+        s.x -= st.speed;
+        s.phase += 0.12;
+        if (s.x < -20) {
+          state.stars.splice(i, 1);
+          continue;
+        }
+        const dx = p.x - s.x;
+        const dy = (p.y - 24) - (s.y + Math.sin(s.phase) * 5);
+        if (dx * dx + dy * dy < 32 * 32) {
+          state.score += 10;
+          audio.playStar();
+          spawnParticles(s.x, s.y, "#ffd875", 12);
+          state.stars.splice(i, 1);
+          updateHUD();
+        }
+      }
+
+      // 更新粒子
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.14;
+        pt.life--;
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+
+      // 更新雪花
+      if (st.snow) {
+        for (const f of state.snowflakes) {
+          f.x -= f.s * 1.3;
+          f.y += f.s;
+          if (f.y > H) { f.y = -4; f.x = Math.random() * W; }
+          if (f.x < 0) f.x = W;
+        }
+      }
+    }
+
+    function drawStarShape(x, y, outerR, innerR, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? outerR : innerR;
+        const a = (Math.PI / 5) * i - Math.PI / 2;
+        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawHills(offset, color, baseY, amp, freq) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 12) {
+        const y = baseY - Math.abs(Math.sin((x + offset) * freq)) * amp;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawPlayer(p) {
+      if (p.invuln > 0 && Math.floor(p.invuln / 5) % 2 === 0) return;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+
+      const runCycle = p.y >= GROUND_Y ? Math.sin(state.tick * 0.35) * 7 : 4;
+
+      // 投影
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 16, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 飘扬红围巾
+      ctx.fillStyle = "#e11d48";
+      ctx.beginPath();
+      ctx.moveTo(-4, -30);
+      ctx.quadraticCurveTo(-18, -32 + Math.sin(state.tick * 0.25) * 5, -28, -24 + Math.cos(state.tick * 0.25) * 4);
+      ctx.lineTo(-24, -19 + Math.cos(state.tick * 0.25) * 4);
+      ctx.quadraticCurveTo(-14, -24, -4, -24);
+      ctx.closePath();
+      ctx.fill();
+
+      // 腿部
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-3, -14); ctx.lineTo(-3 - runCycle, -2);
+      ctx.moveTo(3, -14);  ctx.lineTo(3 + runCycle, -2);
+      ctx.stroke();
+
+      // 军装躯干
+      ctx.fillStyle = "#475569";
+      ctx.beginPath();
+      ctx.roundRect(-10, -33, 20, 21, 5);
+      ctx.fill();
+
+      // 斜挎武装带
+      ctx.strokeStyle = "#92400e";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-8, -32); ctx.lineTo(8, -15);
+      ctx.stroke();
+
+      // 头部
+      ctx.fillStyle = "#fde1c2";
+      ctx.beginPath();
+      ctx.arc(0, -41, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 眼睛
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.arc(4, -42, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 八角红军帽
+      ctx.fillStyle = "#475569";
+      ctx.beginPath();
+      ctx.arc(0, -45, 11, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(-11, -47, 24, 4);
+      // 帽徽红星
+      drawStarShape(3, -49, 4.2, 1.8, "#ef4444");
+
+      ctx.restore();
+    }
+
+    function draw() {
+      const st = STAGES[state.stageIdx];
+      ctx.save();
+      if (state.shake > 0.5) {
+        ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+      }
+
+      // 天空渐变
+      const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      grad.addColorStop(0, st.skyTop);
+      grad.addColorStop(1, st.skyBot);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // 旭日
+      ctx.fillStyle = "rgba(255, 224, 130, 0.25)";
+      ctx.beginPath();
+      ctx.arc(W - 140, 105, 62, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffd875";
+      ctx.beginPath();
+      ctx.arc(W - 140, 105, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 远山与近山视差
+      drawHills(state.dist * 1.4, st.hillFar, GROUND_Y - 12, 82, 0.008);
+      drawHills(state.dist * 3.1, st.hillNear, GROUND_Y, 44, 0.015);
+
+      // 地面与路基
+      ctx.fillStyle = st.ground;
+      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+      ctx.fillStyle = st.grass;
+      ctx.fillRect(0, GROUND_Y, W, 10);
+
+      // 路面滚动物纹
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      const dashOffset = (state.dist * 18) % 60;
+      for (let x = -dashOffset; x < W; x += 60) {
+        ctx.fillRect(x, GROUND_Y + 24, 24, 4);
+      }
+
+      // 障碍物
+      for (const o of state.obstacles) {
+        ctx.save();
+        if (o.kind === 2) {
+          // 雪山冰棱
+          ctx.fillStyle = "#e0f2fe";
+          ctx.beginPath();
+          ctx.moveTo(o.x, GROUND_Y);
+          ctx.lineTo(o.x + o.w / 2, GROUND_Y - o.h);
+          ctx.lineTo(o.x + o.w, GROUND_Y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#7dd3fc";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (o.kind === 1) {
+          // 铁索桥断木/激流礁石
+          ctx.fillStyle = "#4b2c20";
+          ctx.fillRect(o.x, GROUND_Y - o.h, o.w, o.h);
+          ctx.fillStyle = "#9ca3af";
+          ctx.fillRect(o.x - 2, GROUND_Y - o.h + 6, o.w + 4, 4);
+        } else {
+          // 山石
+          ctx.fillStyle = "#4b3832";
+          ctx.beginPath();
+          ctx.moveTo(o.x, GROUND_Y);
+          ctx.lineTo(o.x + 6, GROUND_Y - o.h + 8);
+          ctx.lineTo(o.x + o.w * 0.55, GROUND_Y - o.h);
+          ctx.lineTo(o.x + o.w, GROUND_Y);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 星火道具
+      for (const s of state.stars) {
+        const bobY = s.y + Math.sin(s.phase) * 5;
+        ctx.fillStyle = "rgba(255, 216, 117, 0.28)";
+        ctx.beginPath();
+        ctx.arc(s.x, bobY, s.r + 6, 0, Math.PI * 2);
+        ctx.fill();
+        drawStarShape(s.x, bobY, s.r, s.r * 0.45, "#ffd875");
+      }
+
+      // 玩家
+      drawPlayer(state.player);
+
+      // 粒子
+      for (const pt of state.particles) {
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // 雪花
+      if (st.snow) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        for (const f of state.snowflakes) {
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 顶部行程进度条
+      const pct = Math.min(1, state.dist / TOTAL_DIST);
+      const barW = 260, barX = (W - barW) / 2, barY = 18;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barW, 10, 5);
+      ctx.fill();
+      ctx.fillStyle = "#ffd875";
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, Math.max(10, barW * pct), 10, 5);
+      ctx.fill();
+      drawStarShape(barX + barW * pct, barY + 5, 7, 3, "#ef4444");
+
+      // 诗句横幅提示
+      if (state.poemTimer > 0 && state.poemToast) {
+        const alpha = Math.min(1, state.poemTimer / 30);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = "bold 17px 'PingFang SC', 'Microsoft YaHei', sans-serif";
+        const tw = ctx.measureText(state.poemToast).width;
+        ctx.fillStyle = "rgba(42, 8, 8, 0.72)";
+        ctx.beginPath();
+        ctx.roundRect((W - tw) / 2 - 18, 42, tw + 36, 34, 17);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 216, 117, 0.55)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = "#ffe8a3";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(state.poemToast, W / 2, 59);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // ============== 4. 交互事件 ==============
+    document.getElementById("startBtn").addEventListener("click", resetGame);
+    document.getElementById("restartBtn").addEventListener("click", resetGame);
+    document.getElementById("coverBtn").addEventListener("click", () => {
+      state.mode = "cover";
+      audio.stopBGM();
+      endScreen.classList.add("hidden");
+      coverScreen.classList.remove("hidden");
+    });
+
+    function toggleAudio() {
+      audio.init();
+      audio.setMuted(!audio.muted);
+      audioToggle.textContent = audio.muted ? "🔇 已静音" : "🔊 音乐开";
+    }
+    audioToggle.addEventListener("click", toggleAudio);
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+        e.preventDefault();
+        if (state.mode === "playing") jump();
+        else if (state.mode === "cover" || state.mode === "won" || state.mode === "over") resetGame();
+      } else if (e.code === "KeyM") {
+        toggleAudio();
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (state.mode === "playing") jump();
+    });
+
+    updateHUD();
+    loop();
+  </script>
+</body>
+</html>
