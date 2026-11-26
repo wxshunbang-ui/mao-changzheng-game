@@ -467,7 +467,13 @@
     ];
 
     const TOTAL_DIST = 2600; // 约 38~42 秒通关
-    let best = Number(localStorage.getItem("mao_changzheng_best") || 0);
+    function loadBest() {
+      try { return Number(localStorage.getItem("mao_changzheng_best") || 0); } catch { return 0; }
+    }
+    function saveBest(val) {
+      try { localStorage.setItem("mao_changzheng_best", String(val)); } catch {}
+    }
+    let best = loadBest();
 
     const state = {
       mode: "cover", // cover | playing | won | over
@@ -567,7 +573,7 @@
       }
       if (state.score > best) {
         best = state.score;
-        localStorage.setItem("mao_changzheng_best", String(best));
+        saveBest(best);
       }
       updateHUD();
       endTitle.textContent = won ? "★ 胜利会师！" : "征途受阻，再接再厉";
